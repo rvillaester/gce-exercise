@@ -1,0 +1,17 @@
+-- initial setup
+gcloud projects create gce-lab-challenge --name="Projects for Labs"
+gcloud beta billing projects link gce-lab-challenge --billing-account <billing-account-id)
+gcloud services enable compute.googleapis.com
+gsutil mb -c regional -l us-east1 gs://<bucket-name>
+
+-- create GCE then stress
+gcloud compute instances create lab-vm --machine-type f1-micro --zone us-west2-a --metadata-from-file startup-script=scripts/start-up.sh --metadata lab-logs-bucket=gs://<bucket-name> --scopes storage-rw
+
+-- create GCE Instance group and autoscale
+gcloud compute instance-templates create instance-templates-lab --machine-type f1-micro --region us-west2 --metadata-from-file startup-script=scripts/start-up.sh --metadata lab-logs-bucket=gs://<bucket-name> --scopes storage-rw
+gcloud compute instance-groups managed create managed-instance-groups --template instance-templates-lab --size 1 --region us-west2
+gcloud compute instance-groups managed set-autoscaling managed-instance-groups --min-num-replicas 1 --max-num-replicas 5 --cool-down-period=30 --target-cpu-utilization 0.30 --region us-west2
+
+-- via deployment manager
+gcloud deployment-manager deployments create deployment-manager-gce-lab --config gce.yml
+gcloud deployment-manager deployments delete deployment-manager-gce-lab

@@ -1,0 +1,3 @@
+-- via deployment manager
+gcloud deployment-manager deployments create deployment-manager-gce-lab --config gce.yml
+gcloud deployment-manager deployments delete deployment-manager-gce-lab

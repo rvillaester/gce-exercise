@@ -1,0 +1,47 @@
+# For a list of supported resources,
+# see https://cloud.google.com/deployment-manager/docs/configuration/supported-resource-types.
+resources:
+- type: compute.v1.instance
+  name: lab-vm
+  properties:
+    zone: us-west2-a
+    machineType: https://www.googleapis.com/compute/v1/projects/lab-challenge/zones/us-west2-a/machineTypes/f1-micro
+    metadata:
+      items:
+      - key: lab-logs-bucket
+        value: gs://<bucket-name>
+      - key: startup-script
+        value: |
+          #! /bin/bash
+          set -x
+          apt-get update
+          curl -sSO https://dl.google.com/cloudagents/install-logging-agent.sh
+          bash install-logging-agent.sh
+          apt-get install stress
+          stress -c 8 -t 120
+          log_bucket_metadata_name=lab-logs-bucket
+          log_bucket_metadata_url="http://metadata.google.internal/computeMetadata/v1/instance/attributes/${log_bucket_metadata_name}"
+          worker_log_bucket=$(curl -H "Metadata-Flavor: Google" "${log_bucket_metadata_url}")
+          worker_log_file="machine-$(hostname)-finished.txt"
+          echo "Phew!  Work completed at $(date)" >"${worker_log_file}"
+          echo "Copying the log file to the bucket..."
+          gsutil cp "${worker_log_file}" "${worker_log_bucket}"
+    serviceAccounts:
+      - email: default
+        scopes:
+        - https://www.googleapis.com/auth/devstorage.read_write
+    disks:
+    - deviceName: boot
+      type: PERSISTENT
+      boot: true
+      autoDelete: true
+      initializeParams:
+        # Replace [FAMILY_NAME] with the image family name.
+        # See a full list of image families at https://cloud.google.com/compute/docs/images#os-compute-support
+        sourceImage: https://www.googleapis.com/compute/v1/projects/debian-cloud/global/images/family/debian-9
+    networkInterfaces:
+    - network: https://www.googleapis.com/compute/v1/projects/lab-challenge/global/networks/default
+      # Access Config required to give the instance a public IP address
+      accessConfigs:
+      - name: External NAT
+        type: ONE_TO_ONE_NAT
