@@ -6,6 +6,8 @@ agent on the instance then monitor the activities
 
 Second exercise is to add auto-scaling on the first exercise
 
+Third exercise is doing the first exercise via deployment manager
+
 Note:
 1. I'm running the CLI in Cloud Shell
 2. You can get the billing account id by running the following
